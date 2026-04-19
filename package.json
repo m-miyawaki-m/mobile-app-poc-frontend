@@ -13,9 +13,14 @@
     "postsync-spec": "npm run bundle-spec",
     "bundle-spec": "redocly bundle spec/openapi.yaml -o spec/openapi.bundled.yaml",
     "postbundle-spec": "npm run gen-types",
-    "gen-types": "openapi-typescript spec/openapi.bundled.yaml -o src/api/generated/openapi.d.ts"
+    "gen-types": "openapi-typescript spec/openapi.bundled.yaml -o src/api/generated/openapi.d.ts",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npx cap run android",
+    "android:livereload": "npx cap run android --livereload --external"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
     "@capacitor/core": "^6.0.0",
     "@capacitor/preferences": "^6.0.0",
     "@ionic/vue": "^8.0.0",

@@ -97,22 +97,87 @@ npm run build
 
 → `vue-tsc` で型チェック後、`vite build` で `dist/` に出力。
 
-## Android プラットフォーム追加（参考）
+## Android 実機検証
 
-実機検証段階で対応:
+`@capacitor/android` 導入済み、`android/` 初期化済み。以下の手順で実機にインストール可能。
+
+### 前提
+
+- **Android Studio** インストール済み（SDK + Build Tools 含む）
+- **JDK 17+**（Capacitor 6.x 推奨）
+- 実機（USBデバッグON）または Android エミュレータ
+- PC とスマホが**同じ LAN** にいる
+- mock サーバーが PC で起動中
+
+### 1. PC の LAN IP を確認
 
 ```powershell
-npm install @capacitor/android
-npx cap add android
-# .env.device 作成 (VITE_API_BASE=http://<PC LAN IP>:4010)
-npm run build
-npx cap sync android
-npx cap open android        # Android Studio 起動
-# または
-npx cap run android --livereload  # 実機 Live Reload
+ipconfig | Select-String "IPv4"
 ```
 
-ファイアウォールで mock の 4010 を許可、mock も `npm run mock:lan` で起動すること。
+例: `192.168.1.10`
+
+### 2. `.env.device` を作成
+
+`.env.device.example` をコピーして `<PCのLAN_IP>` を実値に置換:
+
+```
+VITE_API_BASE=http://192.168.1.10:4010
+VITE_LOGIN_USERNAME=demo-user
+VITE_LOGIN_PASSWORD=demo-password
+```
+
+### 3. mock を LAN 公開モードで起動
+
+`mobile-app-poc-mock` 側のターミナルで:
+```powershell
+npm run mock:lan
+```
+
+→ `http://0.0.0.0:4010` で待ち受け。Windowsファイアウォールで 4010 ポートの受信許可必要。
+
+### 4. PC のファイアウォール許可（コマンド例）
+
+```powershell
+New-NetFirewallRule -DisplayName "Prism mock 4010" -Direction Inbound -LocalPort 4010 -Protocol TCP -Action Allow
+```
+
+別端末から `http://<PCのIP>:4010/items` が応答するか curl/ブラウザで確認しておくと切り分けが楽。
+
+### 5. ビルド + Android プロジェクトに同期
+
+```powershell
+npm run android:sync
+```
+
+→ 内部で `vue-tsc` 型チェック → `vite build` → `npx cap sync android` を実行。`android/app/src/main/assets/public/` に最新成果物がコピーされる。
+
+### 6. Android Studio で開く / 実機で実行
+
+```powershell
+npm run android:open       # Android Studio で開く（▶ Run でビルド・転送）
+# または
+npm run android:run        # CLI で USB接続実機に直接インストール
+```
+
+### 7. Live Reload（開発中）
+
+ビルドし直さずコード変更を即反映:
+
+```powershell
+npm run android:livereload
+```
+
+→ Capacitor が `--external` で PC の Vite を実機に見せる。Vite のポート 5173 も Windowsファイアウォール許可必要。
+
+### トラブル切り分け
+
+| 症状 | 確認事項 |
+|---|---|
+| 実機でアプリは開くが API に繋がらない | `.env.device` の IP が PC の現在のIPと一致しているか / mock が `mock:lan` で起動しているか / 同じ Wi-Fi か |
+| `gradle sync failed` 等 | JDK バージョン（17推奨） / Android SDK パス設定 |
+| Live Reload で繋がらない | Vite のポート 5173 もファイアウォール許可、ipconfigでIP再確認 |
+| HTTPS必須エラー | Capacitor 6 + Android で http 通信に追加設定が必要。`capacitor.config.ts` の `server.cleartext: true` を検討 |
 
 ## backend 接続切替（実装後）
 

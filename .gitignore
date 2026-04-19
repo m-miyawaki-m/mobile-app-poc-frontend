@@ -6,7 +6,6 @@ src/api/generated/
 .env.*.local
 .env.device
 .env.production
-android/
 ios/
 *.log
 .DS_Store
